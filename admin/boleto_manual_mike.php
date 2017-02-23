@@ -6,56 +6,24 @@ $con = mysqli_connect($host, $user, $pass, $db) or die ('No se pudo conectar: '.
 
 date_default_timezone_set("America/Mexico_city");
 
-$seccion = $_POST['zona'];
-$fila = $_POST['fila'];
-$forma_pago = $_POST['forma_pago'];
-
-$folio = 0;
+$precio = 430;
 $servicio = 20;
-
+$total = $precio + $servicio;
+$seccion = "Diamante";
+$fila = utf8_decode("Ñ");
+$asientos = 20;
+$mesa = "";
 $hora_evento = "21:30:00";
 $fecha_evento = "23/02/2017";
-
-// $lugar = utf8_decode("LA REINA DISCOTEQUE");
+$hora_impresion = "16:50:00";
+$fecha_impresion = "22/02/2017";
 $artista = utf8_decode("MIKE SALAZAR");
 
-if($seccion == "Diamante"){
-	$precio = 430;
-}
-if($seccion == "Oro"){
-	$precio = 330;
-}
-if($seccion == "Plata"){
-	$precio = 230;
-}
-
-if($forma_pago == 1){
-	$forma_pago = "Efectivo";
-}
-if($forma_pago == 2){
-	$forma_pago = "Tarjeta";
-}
-if($forma_pago == 3){
-	$forma_pago = "Cortesía";
-	$precio = 0;
-	$servicio = 0;
-}
-
-$total = $precio + $servicio;
-
-$result = $con->query("SELECT MAX(folio) as folio FROM morelos");
-if ($row = mysqli_fetch_array($result)){
-	$folio = $row["folio"];
-}
-
-$folio++;
 
 $pdf = new FPDF('P','mm', array(73.5, 180));
 
-foreach ($_POST['asiento'] as $asientos){
-	mysqli_query($con, "UPDATE morelos set status = 1, confirmacion = 1, forma_pago = '".$forma_pago."', folio = ".$folio.", user = 'Taquilla' where seccion = '".$seccion."' and fila = '".$fila."' and asiento = ".$asientos);
-
-	$folio_nuevo = str_pad($folio, 6, "0", STR_PAD_LEFT);
+for($i=417; $i<=420; $i++){
+	$folio_nuevo = str_pad($i, 6, "0", STR_PAD_LEFT);
 
 	$pdf->AddPage();
 
@@ -96,7 +64,7 @@ foreach ($_POST['asiento'] as $asientos){
 	$pdf->Cell(0, 3, "Servicio: $".$servicio, 0, 0, 'R', false);
 	$pdf->Ln(4);
 	$pdf->Cell(0, 3, "Total: $".$total, 0, 0, 'C', false);
-	$pdf->Image('img/mike_salazar.jpeg', 18, 82, 40, 45);
+	$pdf->Image('../images/eventos/mike_salazar.jpeg', 18, 82, 40, 45);
 	$pdf->Ln(57);
 	$pdf->SetFont('Arial','B', 7);
 	$pdf->Cell(0, 3, "MIKE SALAZAR - ".$fecha_evento." - ".$hora_evento, 0, 0, 'C', false);
@@ -123,7 +91,7 @@ foreach ($_POST['asiento'] as $asientos){
 	$pdf->Cell(18, 3, "Servicio: $".$servicio, 0, 0, 'C', false);
 	$pdf->Cell(18, 3, "Total: $".$total, 0, 0, 'R', false);
 
-	$folio++;
+	$asientos++;
 }
 
 $pdf->Output();

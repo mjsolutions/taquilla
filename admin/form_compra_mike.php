@@ -1,92 +1,9 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <title>Bolematico | Taquilla</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="stylesheet" type="text/css" href="css/materialize.min.css">
-  <link rel="stylesheet" type="text/css" href="css/materialize.css">
-  <link rel="stylesheet" type="text/css" href="css/styles.css">
-  <link href="https://file.myfontastic.com/p33ryNdn2ug99gf3MgkiUK/icons.css" rel="stylesheet">
-  <script>
-    function draw(scale, translatePos){
-      var canvas = document.getElementById("myCanvas");
-      var context = canvas.getContext("2d");
-
-        // clear canvas
-        context.clearRect(0, 0, canvas.width, canvas.height);
-
-        context.save();
-        var mapa = new Image();
-        mapa.src = "img/teatro-morelos.svg";
-
-        mapa.addEventListener('load', mostrar_imagen, false);
-
-        function mostrar_imagen() {
-          context.drawImage(mapa, translatePos.x-375, translatePos.y-250, 750*scale, 500*scale);  
-        }       
-      }
-
-      window.onload = function(){
-        var canvas = document.getElementById("myCanvas");
-
-        var translatePos = {
-          x: canvas.width / 2,
-          y: canvas.height / 2
-        };
-
-        var scale = 1.0;
-        var scaleMultiplier = 0.8;
-        var startDragOffset = {};
-        var mouseDown = false;
-
-        // add button event listeners
-        document.getElementById("plus").addEventListener("click", function(){
-          scale /= scaleMultiplier;
-          draw(scale, translatePos);
-        }, false);
-
-        document.getElementById("minus").addEventListener("click", function(){
-          scale *= scaleMultiplier;
-          draw(scale, translatePos);
-        }, false);
-
-        // add event listeners to handle screen drag
-        canvas.addEventListener("mousedown", function(evt){
-          mouseDown = true;
-          startDragOffset.x = evt.clientX - translatePos.x;
-          startDragOffset.y = evt.clientY - translatePos.y;
-        });
-
-        canvas.addEventListener("mouseup", function(evt){
-          mouseDown = false;
-        });
-
-        canvas.addEventListener("mouseover", function(evt){
-          mouseDown = false;
-        });
-
-        canvas.addEventListener("mouseout", function(evt){
-          mouseDown = false;
-        });
-
-        canvas.addEventListener("mousemove", function(evt){
-          if (mouseDown) {
-            translatePos.x = evt.clientX - startDragOffset.x;
-            translatePos.y = evt.clientY - startDragOffset.y;
-            draw(scale, translatePos);
-          }
-        });
-
-        draw(scale, translatePos);
-      };
-    </script>
-  </head>
+  <?php include('head.php') ?>
   <body>
     <header>
       <?php include('nav.php') ?>
     </header>
+
     <main>
       <section>
         <div class="container">
@@ -98,9 +15,13 @@
             </div>
             <div class="row">
              <div class="col s8 col-center divider"></div>
+             <?php
+             error_reporting(E_ALL ^ E_NOTICE);
+             if($_GET["error"]=="ocupado"){echo "<span style='COLOR: RED;'>Error: 1 o más asientos ya han sido ocupados mientras ejecutaba su compra, intente de nuevo.</span>";}
+             ?>
            </div>
            <div class="row">
-             <form class="col s12" id="form1" action="compra.php" target="_blank" method="post" enctype="application/x-www-form-urlencoded" name="login_form">
+             <form class="col s12" id="form1" action="compra_mike.php" target="_blank" method="post" enctype="application/x-www-form-urlencoded" name="login_form">
                <div class="row">
                  <div class="input-field col s3">
                   <select name="zona" id="zona">
@@ -138,38 +59,82 @@
             </form>
           </div>
           <div class="row">
-            <div class="col s12 center">
-              <div id="canvas-wrapper" style="margin: 0 auto;">
-                <canvas id="myCanvas" width="750" height="500"></canvas>
-                <div id="button-canvas-wrapper">
-                  <input type="button" id="plus" value="+"><input type="button" id="minus" value="-">
-                </div>
-              </div>
+           <div class="col s8 col-center divider"></div>
+         </div>
+         <div class="row">
+           <form class="col s12" id="form2" action="form_compra_sofia.php" method="post" enctype="application/x-www-form-urlencoded" name="form_busqueda">
+             <div class="col l6 offset-l4 input-field mt-0">
+              <i class="material-icons prefix">search</i>
+              <input id="busqueda" type="text" class="validate" name="palabra_txt">
+              <label for="busqueda">(Forma de pago, folio, asiento, etc.)</label>
             </div>
-          </div>
+            <div class="col l2">
+              <button class="btn waves-effect waves-light" type="submit" style=" width: 100%;">Buscar<i class="mdi-action-lock-open right"></i></button>
+            </div>
+          </form>
+        </div>
+        <table class="responsive-table centered">
+         <thead>
+          <tr>
+           <th data-field="id">Id</th>
+           <th data-field="seccion">Sección</th>
+           <th data-field="fila">Fila</th>
+           <th data-field="asiento">Asiento</th>
+           <th data-field="forma_pago">Forma de Pago</th>
+           <th data-field="folio">Folio</th>
+           <th data-field="updated_at">Hora de venta</th>
+           <th data-field="option">Opciones</th>
+         </tr>
+       </thead>
+
+       <?php 
+       error_reporting(E_ALL ^ E_NOTICE);
+       include 'conexion/datos.php';
+       $con = mysqli_connect($host, $user, $pass, $db) or die ('No se pudo conectar: '.mysqli_error());
+
+       $palabra=$_POST['palabra_txt'];
+
+       $busqueda = trim($palabra, " \t.");
+
+       $result = $con->query("SELECT id, seccion, fila, asiento, forma_pago, folio, updated_at FROM morelos where status = 1 and confirmacion = 1 and (user = ".$_SESSION["id"]." or forma_pago = 'PayPal') and (id like '%".$busqueda."%' or seccion like '%".$busqueda."%' or fila like '%".$busqueda."%' or forma_pago like '%".$busqueda."%' or folio like '%".$busqueda."%') ORDER BY folio DESC");
+
+       if ($row = mysqli_fetch_array($result)){
+        echo "<tbody> \n";
+        do {        
+          echo "
+          <tr>
+           <td>".$row["id"]."</td>
+           <td>".$row["seccion"]."</td>
+           <td>".$row["fila"]."</td>
+           <td>".$row["asiento"]."</td>
+           <td>".$row["forma_pago"]."</td>
+           <td>".$row["folio"]."</td>
+           <td>".$row["updated_at"]."</td>
+           <td>";
+             if($_SESSION["type"] == "super" || $_SESSION["id"] == "35"){
+              echo "<a class='btn-floating btn-small waves-effect waves-light  red darken-1 mr-5 tooltipped disabled' data-position='right' data-delay='50' data-tooltip='Re-imprimir'><i class='material-icons'>print</i></a>";
+            }
+            echo "
+          </td>
+        </tr>";
+      } while ($row = mysqli_fetch_array($result));
+      echo "</tbody> \n";
+    } else { 
+      echo "<span style='COLOR:red;'> ¡ No se ha encontrado ningun registro !</span>";
+    }
+    ?>
+
+  </table>
         </div>
       </div>
     </section>
   </main>
-  <footer class="page-footer grey darken-4">
-    <div class="container">
-      <div class="row">
-        <div class="col l6 s12">
-          <h5 class="white-text">Bolematico.com.mx</h5>
-        </div>
-      </div>
-    </div>
-    <div class="footer-copyright">
-      <div class="container">
-        <div class="row">
-          <div class="col l6">Todos los derechos reservados.</div>
-          <div class="col l6 right-align">© 2017</div>
-        </div>
-      </div>
-    </div>
-  </footer>
+
+
+  <?php include('footer.php') ?>
+
   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-  <script type="text/javascript" src="js/materialize.js"></script>
+  <script type="text/javascript" src="../js/materialize.js"></script>
   <script>
     $(document).ready(function(){
       $('select').material_select();
@@ -191,7 +156,7 @@
         $.ajax({
       // dataType: "json",
       data: {"zona": $zona},
-      url:   'buscar.php',
+      url:   'buscar_mike.php',
       type:  'post',
       beforeSend: function(){
         //Lo que se hace antes de enviar el formulario
@@ -216,7 +181,7 @@
       $.ajax({
     // dataType: "json",
     data: {"fila": $fila},
-    url:   'buscar.php',
+    url:   'buscar_mike.php',
     type:  'post',
     beforeSend: function(){
       //Lo que se hace antes de enviar el formulario
